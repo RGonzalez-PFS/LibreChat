@@ -234,7 +234,10 @@ export class MCPConnectionFactory {
       cleanupOAuthHandlers = this.handleOAuthEvents(connection);
     }
 
-    if (this.useOAuth && !oauthTokens) {
+    const requiresOAuth =
+      (this.serverConfig as t.ParsedServerConfig).requiresOAuth || !!this.serverConfig.oauth;
+
+    if (this.useOAuth && !oauthTokens && requiresOAuth) {
       logger.info(
         `${this.logPrefix} Tokens missing for OAuth server, proactively triggering flow.`,
       );
