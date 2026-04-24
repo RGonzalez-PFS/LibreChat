@@ -234,6 +234,29 @@ export class MCPConnectionFactory {
       cleanupOAuthHandlers = this.handleOAuthEvents(connection);
     }
 
+    if (this.useOAuth && !oauthTokens) {
+      logger.info(
+        `${this.logPrefix} Tokens missing for OAuth server, proactively triggering flow.`,
+      );
+
+      const oauthHandledPromise = new Promise<void>((resolve, reject) => {
+        connection.once('oauthHandled', () => resolve());
+        connection.once('oauthFailed', (err) => reject(err));
+      });
+
+      const serverUrl = (this.serverConfig as t.SSEOptions | t.StreamableHTTPOptions).url || '';
+      connection.emit('oauthRequired', { serverUrl });
+
+      try {
+        await oauthHandledPromise;
+      } catch (error) {
+        if (cleanupOAuthHandlers) {
+          cleanupOAuthHandlers();
+        }
+        throw error;
+      }
+    }
+
     try {
       await this.attemptToConnect(connection);
       if (cleanupOAuthHandlers) {
